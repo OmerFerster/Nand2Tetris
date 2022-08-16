@@ -1,0 +1,17 @@
+// This file is part of nand2tetris, as taught in The Hebrew University,
+// and was written by Aviv Yaish, and is published under the Creative 
+// Common Attribution-NonCommercial-ShareAlike 3.0 Unported License 
+// https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+// Divide in by 2
+// Must save the MSB that symbols the sign of the number + / -
+// At left shift this process not needed
+
+CHIP ShiftRight{
+	IN in[16];
+    OUT out[16];
+     
+    PARTS:
+	Add16(a=in, b=false, out[1..15] = out[0..14]);
+    Or(a=in[15], b=false, out=out[15]);  // keeping the sign of MSB
+}

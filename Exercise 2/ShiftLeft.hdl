@@ -1,0 +1,16 @@
+// This file is part of nand2tetris, as taught in The Hebrew University,
+// and was written by Aviv Yaish, and is published under the Creative 
+// Common Attribution-NonCommercial-ShareAlike 3.0 Unported License 
+// https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+// Multiply in by 2
+// No needed to save the MSB sign like ShiftRight CHIP
+
+CHIP ShiftLeft{
+    IN in[16];
+    OUT out[16];
+     
+    PARTS:
+    Add16(a=in, b=false, out[0..14] = out[1..15]);
+    Or(a=false, b=false, out=out[0]);
+}
