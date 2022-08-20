@@ -1,0 +1,66 @@
+// This file is part of nand2tetris, as taught in The Hebrew University,
+// and was written by Aviv Yaish, and is published under the Creative 
+// Common Attribution-NonCommercial-ShareAlike 3.0 Unported License 
+// https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+// This chip is an extension of the regular CPU that uses the extended ALU.
+// If instruction[15]==0 or (instruction[14]==1 and instruction[13]==1),
+// the CpuMul behaves exactly the same as the regular CPU.
+// If instruction[15]==1 and instruction[14]==0 the chip will behave as follows:
+//  Instruction  | 12 | 11 | 10 |
+// ______________________________
+// dest=D<<;jump | 0  | 1  | 1  |
+// dest=A<<;jump | 0  | 1  | 0  |
+// dest=M<<;jump | 1  | 1  | 0  |
+// dest=D>>;jump | 0  | 0  | 1  |
+// dest=A>>;jump | 0  | 0  | 0  |
+// dest=M>>;jump | 1  | 0  | 0  |
+
+CHIP CpuMul {
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset=1) or continue executing
+                         // the current program (reset=0).
+    OUT outM[16],        // M value output
+        writeM,          // Write into M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+    
+    PARTS:
+    Not(in=instruction[15], out=ni);  
+    Mux16(a=instruction, b=aluout, sel=instruction[15], out=inst);
+    Or(a=ni,b=instruction[5],out=aload);
+    ARegister(in=inst, load=aload, out=ac, out[0..14]=addressM);
+
+    And(a=instruction[12], b=instruction[15], out=yy);
+    Mux16(a=ac, b=inM, sel=yy, out=yalu);
+
+    And(a=instruction[4], b=instruction[15], out=xx);
+    DRegister(in=aluout, load=xx, out=xalu);
+
+    ExtendAlu(x=xalu, y=yalu, instruction=instruction[6..14],
+      out=aluout, out=outM, zr=zr, ng=ng);
+
+    And(a=instruction[3], b=instruction[15], out=writeM);
+
+    // Compute the g_function(jump pins j1,j2,j3,zr,ng)
+    // Decides to JMP by: if g_out == 1 --> PC = A address else (g_out == 0) --> PC++
+    Not(in=ng,out=pos);
+	Not(in=zr,out=nzr);
+	And(a=instruction[15],b=instruction[0],out=jgt);
+	And(a=pos,b=nzr,out=posnzr);
+	And(a=jgt,b=posnzr,out=ld1);
+
+	And(a=instruction[15],b=instruction[1],out=jeq);
+	And(a=jeq,b=zr,out=ld2);
+
+	And(a=instruction[15],b=instruction[2],out=jlt);
+	And(a=jlt,b=ng,out=ld3);
+
+	Or(a=ld1,b=ld2,out=ldt);
+	Or(a=ld3,b=ldt,out=gres);
+    
+    PC(in=ac, load=gres, inc=true, reset=reset, out[0..14]=pc);
+    
+}
